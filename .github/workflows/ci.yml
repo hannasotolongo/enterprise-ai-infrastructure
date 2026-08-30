@@ -29,3 +29,9 @@ jobs:
 
       - name: Run tests
         run: pytest -q
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t enterprise-ai-inference:ci \
+            -f docker/Dockerfile .
