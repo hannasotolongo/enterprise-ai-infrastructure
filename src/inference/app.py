@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, HTTPException
 from pydantic import BaseModel
 import torch
 import time
@@ -88,9 +88,10 @@ def predict(request: PredictionRequest):
     features = request.features
 
     if len(features) != 10:
-        return {
-            "error": "Model requires exactly 10 features."
-        }
+        raise HTTPException(
+            status_code=422,
+            detail="Model requires exactly 10 features.",
+        )
 
     X = torch.tensor(
         [features],

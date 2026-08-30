@@ -60,6 +60,21 @@ def test_invalid_prediction_input():
     assert response.status_code == 422
 
 
+def test_wrong_feature_count():
+    response = client.post(
+        "/predict",
+        json={
+            "features": [1, 2, 3]
+        },
+    )
+
+    assert response.status_code == 422
+
+    data = response.json()
+
+    assert data["detail"] == "Model requires exactly 10 features."
+
+
 def test_metrics_endpoint():
     response = client.get("/metrics")
 
@@ -75,6 +90,8 @@ def test_metrics_endpoint():
     assert data["prediction_requests"] >= 0
     assert data["successful_predictions"] >= 0
     assert data["average_prediction_latency_seconds"] >= 0
+
+
 def test_prometheus_metrics_endpoint():
     response = client.get("/metrics/prometheus")
 
