@@ -1,131 +1,242 @@
 # Enterprise AI Infrastructure Platform
 
-A production-oriented AI infrastructure project for training, containerizing, deploying, and serving machine learning models using PyTorch, FastAPI, Docker, Kubernetes, MLflow, Terraform, and AWS.
+An end-to-end AI infrastructure and MLOps project for training, tracking, containerizing, testing, deploying, monitoring, and benchmarking machine learning inference workloads.
 
-## Overview
-
-This project demonstrates an end-to-end machine learning infrastructure workflow, from model training to containerized inference and Kubernetes deployment.
-
-The platform provides a foundation for scalable machine learning workloads while demonstrating infrastructure and MLOps concepts used in modern AI systems.
+The platform demonstrates how a machine learning model can move from local model development to a containerized API running on Kubernetes with automated testing and infrastructure-as-code configuration.
 
 ## Architecture
 
 ```text
-                    Client
-                      |
-                      v
-              FastAPI REST API
-                POST /predict
-                      |
-                      v
-                PyTorch Model
-                      |
-                      v
-               Docker Container
-                      |
-                      v
-                 Kubernetes
-                /          \
-         Deployment        Service
-              |
-             Pods
-              |
-              v
-           Inference
+                         Client
+                           |
+                           v
+                    FastAPI REST API
+                     POST /predict
+                           |
+                           v
+                     PyTorch Model
+                           |
+                           v
+                    Docker Container
+                           |
+                           v
+                       Kubernetes
+                    /             \
+             Deployment           Service
+                 |                   |
+          Health Probes          Networking
+          Resource Limits
+                 |
+                 v
+              Inference
+                 |
+          -----------------
+          |               |
+       Metrics        Benchmarking
+          |
+       /metrics
 
-        MLflow       Monitoring
-           \           /
-            \         /
-          Infrastructure
-                |
-             Terraform
-                |
-               AWS
+Training Pipeline
+       |
+       v
+    PyTorch
+       |
+       v
+     MLflow
+   /        \
+Metrics    Model Artifact
+
+
+Infrastructure Configuration
+       |
+       v
+    Terraform
+       |
+       v
+       AWS
+
+Development Workflow
+       |
+       v
+      GitHub
+       |
+       v
+ GitHub Actions CI
+       |
+       v
+ Automated Testing
 ```
 
-## Current Features
+## Features
+
+### Machine Learning
 
 - PyTorch model training pipeline
+- Apple Metal Performance Shaders (MPS) acceleration when available
 - Model serialization and loading
-- FastAPI inference service
-- REST-based prediction endpoint
-- Dockerized inference application
-- Kubernetes Deployment
-- Kubernetes Service networking
-- Local Kubernetes model serving
-- Interactive API testing through Swagger UI
-- MLflow experiment tracking foundation
+- Reproducible inference workflow
 
-## Technology Stack
+### Experiment Tracking
 
-| Area | Technologies |
-|---|---|
-| Machine Learning | PyTorch |
-| Programming | Python |
-| API | FastAPI, Uvicorn |
-| Containers | Docker |
-| Orchestration | Kubernetes |
-| Experiment Tracking | MLflow |
-| Infrastructure as Code | Terraform |
-| Cloud | AWS |
+MLflow is integrated into the training pipeline to track:
 
-## API
+- Training parameters
+- Loss across epochs
+- Training duration
+- Compute device
+- Model artifacts
 
-### Health Check
+Trained model files are automatically stored as MLflow artifacts after training.
+
+### Model Serving
+
+The trained PyTorch model is exposed through a FastAPI inference service.
+
+Available endpoints:
 
 `GET /`
 
-Example response:
-
-```json
-{
-  "status": "healthy",
-  "service": "enterprise-ai-inference",
-  "device": "cpu"
-}
-```
-
-### Model Prediction
+Health endpoint for verifying service availability.
 
 `POST /predict`
 
-The prediction endpoint accepts model features through the REST API and returns a model prediction.
+Accepts model features and returns an inference result.
 
-## Kubernetes Deployment
+`GET /metrics`
 
-The inference service is packaged inside a Docker container and deployed to Kubernetes.
+Provides runtime inference metrics including:
+
+- Prediction requests
+- Successful predictions
+- Average prediction latency
+- Compute device
+
+### Containerization
+
+The inference application is packaged into a Docker container to provide a consistent runtime environment.
+
+Build the image with:
+
+```bash
+docker build -t enterprise-ai-inference:latest -f docker/Dockerfile .
+```
+
+### Kubernetes Orchestration
+
+The inference container can be deployed to a local Kubernetes cluster.
+
+The Kubernetes configuration includes:
+
+- Deployment management
+- Service networking
+- Readiness probes
+- Liveness probes
+- CPU resource requests and limits
+- Memory resource requests and limits
+
+Deploy the application:
 
 ```bash
 kubectl apply -f kubernetes/deployment.yaml
+kubectl apply -f kubernetes/service.yaml
+```
+
+Verify the deployment:
+
+```bash
 kubectl get deployments
 kubectl get pods
+kubectl get services
 ```
 
-A successfully deployed instance reports:
-
-```text
-READY   STATUS    RESTARTS
-1/1     Running   0
-```
-
-The service can be accessed locally using:
+Access the service locally:
 
 ```bash
 kubectl port-forward service/enterprise-ai-service 8000:8000
 ```
 
-FastAPI's interactive API documentation is then available at:
+FastAPI interactive documentation is available at:
 
 `http://localhost:8000/docs`
+
+## Automated Testing
+
+The repository contains automated API tests for health checking and model prediction.
+
+Run the test suite with:
+
+```bash
+pytest -q
+```
+
+Current local test suite:
+
+```text
+2 passed
+```
+
+## Continuous Integration
+
+GitHub Actions automatically runs the test suite for pushes and pull requests to the `main` branch.
+
+The CI workflow:
+
+1. Checks out the repository
+2. Configures Python
+3. Installs project dependencies
+4. Runs the automated test suite
+
+This provides automated validation of application changes before further deployment.
+
+## Performance Benchmarking
+
+The project includes an inference benchmarking utility:
+
+```bash
+python benchmarks/benchmark_api.py
+```
+
+A warm local benchmark against the Kubernetes-hosted inference API produced:
+
+```text
+Requests: 20
+Average latency: 0.0025 seconds
+Fastest request: 0.0015 seconds
+Slowest request: 0.0179 seconds
+```
+
+These measurements represent a local development environment and should not be interpreted as cloud or production performance.
+
+An earlier cold/warm-up run showed higher initial latency, demonstrating the performance difference that can occur during model or service initialization.
+
+## Infrastructure as Code
+
+Terraform configuration is included as the foundation for AWS infrastructure provisioning.
+
+The current Terraform configuration defines:
+
+- AWS provider configuration
+- EC2 compute infrastructure
+- Security group configuration
+- Infrastructure variables
+- Infrastructure outputs
+
+The Terraform configuration is currently an infrastructure prototype and has not yet been applied as a production AWS deployment.
 
 ## Project Structure
 
 ```text
 enterprise-ai-infrastructure/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── benchmarks/
+│   └── benchmark_api.py
 ├── docker/
 │   └── Dockerfile
 ├── kubernetes/
-│   └── deployment.yaml
+│   ├── deployment.yaml
+│   └── service.yaml
 ├── models/
 │   └── model.pth
 ├── src/
@@ -135,23 +246,63 @@ enterprise-ai-infrastructure/
 │       ├── __init__.py
 │       ├── model.py
 │       └── train.py
+├── terraform/
+│   ├── main.tf
+│   ├── outputs.tf
+│   └── variables.tf
+├── tests/
+│   └── test_api.py
+├── pytest.ini
 ├── requirements.txt
 └── README.md
 ```
 
-## Development Roadmap
+## Technology Stack
 
-Planned infrastructure improvements include:
+| Area | Technologies |
+|---|---|
+| Programming | Python |
+| Machine Learning | PyTorch |
+| API / Model Serving | FastAPI, Uvicorn |
+| Containers | Docker |
+| Orchestration | Kubernetes |
+| Experiment Tracking | MLflow |
+| Testing | Pytest |
+| Continuous Integration | GitHub Actions |
+| Infrastructure as Code | Terraform |
+| Cloud Infrastructure | AWS configuration |
+| Version Control | Git, GitHub |
 
-- Kubernetes health probes and resource management
-- Monitoring and observability
-- Terraform-based cloud infrastructure
-- AWS deployment
-- Automated testing
-- CI/CD
-- Model and infrastructure performance benchmarking
-- Scalable model-serving architecture
+## Engineering Concepts Demonstrated
+
+This project demonstrates hands-on experience with:
+
+- Machine learning model lifecycle management
+- Model serving through REST APIs
+- Containerized application deployment
+- Kubernetes workload orchestration
+- Health checking and resource management
+- Experiment and artifact tracking
+- ML inference observability
+- Automated software testing
+- Continuous integration
+- Infrastructure as code
+- Performance benchmarking
+
+## Future Improvements
+
+Potential extensions include:
+
+- Deploying the infrastructure to AWS
+- Publishing container images to a remote registry
+- Prometheus and Grafana observability
+- Persistent centralized metrics
+- Kubernetes autoscaling
+- Load and concurrency testing
+- Model versioning and deployment strategies
+- Infrastructure security hardening
+- Automated cloud deployment
 
 ## Project Goal
 
-The goal of this project is to build an increasingly production-oriented AI infrastructure stack while developing hands-on experience across model training, containerization, orchestration, experiment tracking, infrastructure as code, cloud infrastructure, and ML observability.
+The goal of this project is to demonstrate the infrastructure lifecycle surrounding a machine learning model—not only model development, but also the systems required to package, serve, test, orchestrate, observe, benchmark, and eventually deploy machine learning workloads in scalable environments.
