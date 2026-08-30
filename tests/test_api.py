@@ -75,3 +75,9 @@ def test_metrics_endpoint():
     assert data["prediction_requests"] >= 0
     assert data["successful_predictions"] >= 0
     assert data["average_prediction_latency_seconds"] >= 0
+def test_prometheus_metrics_endpoint():
+    response = client.get("/metrics/prometheus")
+
+    assert response.status_code == 200
+    assert "inference_requests_total" in response.text
+    assert "inference_latency_seconds" in response.text
