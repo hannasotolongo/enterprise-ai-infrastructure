@@ -1,20 +1,48 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: enterprise-ai-inference
+
 spec:
   replicas: 1
+
   selector:
     matchLabels:
       app: enterprise-ai-inference
+
   template:
     metadata:
       labels:
         app: enterprise-ai-inference
+
     spec:
       containers:
         - name: enterprise-ai-inference
           image: enterprise-ai-inference:latest
           imagePullPolicy: IfNotPresent
+
           ports:
             - containerPort: 8000
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"

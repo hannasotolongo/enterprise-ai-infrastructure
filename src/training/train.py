@@ -100,4 +100,7 @@ with mlflow.start_run():
     # Save the trained model
     torch.save(model.state_dict(), "../../models/model.pth")
 
+    # Store the trained model in MLflow
+    mlflow.log_artifact("../../models/model.pth", artifact_path="model")
+
     print("Model saved successfully!")

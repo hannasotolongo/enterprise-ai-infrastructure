@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import torch
+import time
 
 from src.training.model import AIModel
 
@@ -11,6 +12,9 @@ app = FastAPI(
     description="Production-oriented model inference API",
     version="1.0.0",
 )
+prediction_requests = 0
+successful_predictions = 0
+total_prediction_time = 0.0
 
 
 # Select available device
@@ -57,6 +61,12 @@ def health_check():
 # Prediction endpoint
 @app.post("/predict")
 def predict(request: PredictionRequest):
+    global prediction_requests
+    global successful_predictions
+    global total_prediction_time
+
+    prediction_requests += 1
+    start_time = time.time()
 
     # Get features from request
     features = request.features
@@ -85,8 +95,24 @@ def predict(request: PredictionRequest):
             output,
             dim=1,
         ).item()
-
+    prediction_time = time.time() - start_time
+    successful_predictions += 1
+    total_prediction_time += prediction_time
     return {
         "prediction": prediction,
+        "device": str(device),
+    }
+@app.get("/metrics")
+def metrics():
+    average_latency = (
+        total_prediction_time / successful_predictions
+        if successful_predictions > 0
+        else 0
+    )
+
+    return {
+        "prediction_requests": prediction_requests,
+        "successful_predictions": successful_predictions,
+        "average_prediction_latency_seconds": average_latency,
         "device": str(device),
     }
