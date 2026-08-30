@@ -1,0 +1,1 @@
+print("Hello! My AI infrastructure project is running.")

@@ -1,0 +1,33 @@
+# Python virtual environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# MLflow local files
+mlruns/
+mlartifacts/
+mlflow.db
+
+# Environment variables / secrets
+.env
+.env.*
+
+# IDE files
+.vscode/
+.idea/
+
+# Terraform generated files
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Logs
+*.log
