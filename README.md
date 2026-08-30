@@ -1,6 +1,6 @@
 # Enterprise AI Infrastructure Platform
 
-An end-to-end AI infrastructure and MLOps project for training, tracking, containerizing, testing, deploying, monitoring, and benchmarking machine learning inference workloads.
+AI infrastructure and MLOps project for training, tracking, containerizing, testing, deploying, monitoring, and benchmarking machine learning inference workloads.
 
 The platform demonstrates how a machine learning model can move from local model development to a containerized API running on Kubernetes with automated testing and infrastructure-as-code configuration.
 
@@ -275,7 +275,7 @@ enterprise-ai-infrastructure/
 
 ## Engineering Concepts Demonstrated
 
-This project demonstrates hands-on experience with:
+This project demonstrates experience with:
 
 - Machine learning model lifecycle management
 - Model serving through REST APIs
