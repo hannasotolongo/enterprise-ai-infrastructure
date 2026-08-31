@@ -19,8 +19,8 @@ spec:
     spec:
       containers:
         - name: enterprise-ai-inference
-          image: enterprise-ai-inference:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/hannasotolongo/enterprise-ai-inference:latest
+          imagePullPolicy: Always
 
           ports:
             - containerPort: 8000
