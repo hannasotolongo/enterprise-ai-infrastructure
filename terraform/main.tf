@@ -15,15 +15,7 @@ provider "aws" {
 
 resource "aws_security_group" "ai_inference" {
   name        = "enterprise-ai-inference-sg"
-  description = "Allow SSH and AI inference API traffic"
-
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  description = "Network access for the AI inference service"
 
   ingress {
     description = "FastAPI inference"
@@ -40,6 +32,7 @@ resource "aws_security_group" "ai_inference" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
