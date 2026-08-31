@@ -1,112 +1,141 @@
 # Enterprise AI Infrastructure Platform
 
-Infrastructure for deploying and operating machine learning inference workloads using PyTorch, FastAPI, Docker, Kubernetes, MLflow, GitHub Actions, and Terraform.
+Infrastructure for deploying and operating machine learning inference workloads using PyTorch, FastAPI, Docker, Kubernetes, MLflow, GitHub Actions, Prometheus, and Terraform.
 
-The platform supports model training and experiment tracking, containerized API-based inference, Kubernetes orchestration, runtime monitoring, automated testing, CI validation, and infrastructure-as-code configuration for AWS.
+The platform supports model training and experiment tracking, containerized API based inference, Kubernetes orchestration, runtime monitoring, automated testing, CI based container publishing, performance benchmarking, and infrastructure as code configuration for AWS.
 
 ## Architecture
 
 ```text
-                    Client
-                      │
-                      ▼
-                FastAPI API
-               /predict  /metrics
-                      │
-                      ▼
-                 PyTorch Model
-                      │
-                      ▼
-               Docker Container
-                      │
-                      ▼
-                  Kubernetes
-               ┌──────┴──────┐
-               │             │
-          Deployment       Service
-               │
-        Health Probes
-        Resource Limits
-
-
-Training ──────► MLflow
-                 │
-          Metrics + Artifacts
-
-
-Git Push ──────► GitHub Actions
-                 │
-              Tests
-                 │
-              Docker Build
-
-
-Terraform ─────► AWS Infrastructure
-                 Configuration
+                    ┌─────────────────────┐
+                    │   PyTorch Training  │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │       MLflow        │
+                    │ Experiments/Models  │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │   FastAPI Service   │
+                    │   Model Inference   │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │       Docker        │
+                    │ Containerized API   │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │        GHCR         │
+                    │  Container Registry │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │     Kubernetes      │
+                    │ Deployment/Service  │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────┴──────────┐
+                    ▼                     ▼
+             Health Probes        Prometheus Metrics
 ```
 
 ## Core Components
 
-**Model Training**
-- PyTorch training pipeline
-- MPS/CUDA/CPU device selection
-- Model serialization
+### Model Training
 
-**Model Serving**
-- FastAPI inference service
-- `/predict` prediction endpoint
-- `/` health endpoint
-- `/metrics` runtime metrics endpoint
+PyTorch training pipeline with hardware-aware execution across Apple MPS, NVIDIA CUDA, and CPU environments.
 
-**MLOps**
-- MLflow experiment tracking
-- Training parameter and metric logging
-- Model artifact storage
-- Inference latency benchmarking
+MLflow records experiment parameters, training metrics, execution time, and model artifacts.
 
-**Containers & Orchestration**
-- Dockerized inference service
-- Kubernetes Deployment and Service
-- Readiness and liveness probes
-- CPU and memory resource controls
+### Model Serving
 
-**Testing & CI**
-- Automated API tests with Pytest
-- Input validation and response contract tests
-- GitHub Actions CI on pushes and pull requests
-- Automated Docker image build validation
+FastAPI exposes the trained model through:
 
-**Infrastructure**
-- Terraform configuration for AWS infrastructure
-- EC2 and security group definitions
-- Configurable infrastructure variables and outputs
+- `GET /` — service health
+- `POST /predict` — model inference
+- `GET /metrics` — inference statistics
+- `GET /metrics/prometheus` — Prometheus-compatible metrics
+
+Prediction requests are validated before inference and invalid feature dimensions return HTTP 422 responses.
+
+### Containers & Kubernetes
+
+The inference service is packaged as a Docker image and published to GitHub Container Registry through GitHub Actions.
+
+Kubernetes manages the inference workload with:
+
+- Deployment and Service resources
+- readiness and liveness probes
+- CPU and memory requests/limits
+- automatic image retrieval from GHCR
+
+The containerized service has been successfully deployed and verified on a local Kubernetes cluster.
+
+### Monitoring
+
+The API tracks inference request counts, successful predictions, and request latency.
+
+Prometheus-compatible counters and latency histograms are exposed through `/metrics/prometheus` for external monitoring systems.
+
+### Testing & CI
+
+The automated pytest suite covers:
+
+- service health
+- prediction requests
+- response types
+- malformed input
+- incorrect model feature dimensions
+- runtime metrics
+- Prometheus metrics
+
+GitHub Actions runs the test suite on pushes and pull requests. Successful pushes to `main` build the Docker image and publish it to GitHub Container Registry.
+
+### Infrastructure as Code
+
+Terraform defines an AWS infrastructure foundation including:
+
+- EC2 compute
+- security group configuration
+- configurable region and instance type
+- infrastructure outputs
+
+The Terraform configuration has been initialized, formatted, and successfully validated with the Terraform CLI. It has not been applied to AWS.
+
+## Performance Benchmarking
+
+The benchmark utility measures inference latency across repeated API requests.
+
+Example warm-run results from the local Kubernetes deployment:
+
+```text
+Requests: 20
+Average latency: 0.0025 sec
+Fastest request: 0.0015 sec
+Slowest request: 0.0179 sec
+```
+
+These measurements represent local development performance and are not cloud or production benchmarks.
 
 ## Run Locally
 
-### Build the container
+### Install dependencies
 
 ```bash
-docker build -t enterprise-ai-inference:latest -f docker/Dockerfile .
+pip install -r requirements.txt
 ```
 
-### Deploy to Kubernetes
+### Start the inference API
 
 ```bash
-kubectl apply -f kubernetes/deployment.yaml
-kubectl apply -f kubernetes/service.yaml
-```
-
-Verify:
-
-```bash
-kubectl get pods
-kubectl get services
-```
-
-Forward the service:
-
-```bash
-kubectl port-forward service/enterprise-ai-service 8000:8000
+uvicorn src.inference.app:app --host 0.0.0.0 --port 8000
 ```
 
 API documentation:
@@ -115,45 +144,39 @@ API documentation:
 http://localhost:8000/docs
 ```
 
-## Testing
+### Run tests
 
 ```bash
 pytest -q
 ```
 
-Current test suite covers:
+### Build the Docker image
 
-- Service health
-- Model inference
-- Prediction response types
-- Invalid API input
-- Runtime metrics
+```bash
+docker build -f docker/Dockerfile -t enterprise-ai-inference .
+```
 
-## Performance
+### Deploy to Kubernetes
 
-Benchmark:
+```bash
+kubectl apply -f kubernetes/deployment.yaml
+kubectl apply -f kubernetes/service.yaml
+kubectl rollout status deployment/enterprise-ai-inference
+```
+
+### Run the benchmark
 
 ```bash
 python benchmarks/benchmark_api.py
 ```
 
-Warm local Kubernetes benchmark:
-
-```text
-Requests: 20
-Average latency: 0.0025 seconds
-Fastest request: 0.0015 seconds
-Slowest request: 0.0179 seconds
-```
-
-Results reflect the local development environment and are not representative of cloud production performance.
-
 ## Project Structure
 
 ```text
 enterprise-ai-infrastructure/
-├── .github/workflows/
-│   └── ci.yml
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── benchmarks/
 │   └── benchmark_api.py
 ├── docker/
@@ -176,23 +199,38 @@ enterprise-ai-infrastructure/
 ├── tests/
 │   └── test_api.py
 ├── pytest.ini
-├── requirements.txt
-└── README.md
+└── requirements.txt
 ```
 
-## Stack
+## Technology Stack
 
-Python · PyTorch · FastAPI · Docker · Kubernetes · MLflow · Pytest · GitHub Actions · Terraform · AWS
+**Machine Learning:** PyTorch  
+**Experiment Tracking:** MLflow  
+**API:** FastAPI  
+**Containers:** Docker  
+**Container Registry:** GitHub Container Registry  
+**Orchestration:** Kubernetes  
+**Monitoring:** Prometheus-compatible metrics  
+**Testing:** pytest  
+**CI:** GitHub Actions  
+**Infrastructure as Code:** Terraform  
+**Cloud Configuration:** AWS
 
 ## Current Status
 
-The training, inference, containerization, Kubernetes deployment, experiment tracking, monitoring endpoint, benchmarking, automated testing, and CI pipeline are implemented and tested locally.
+Verified components include:
 
-Terraform AWS infrastructure configuration is included but has not yet been deployed to AWS.
+- PyTorch model training
+- MLflow experiment and artifact tracking
+- FastAPI inference service
+- input validation and error handling
+- Docker containerization
+- GitHub Actions automated testing
+- GHCR container publishing
+- Kubernetes deployment and service
+- Kubernetes health probes and resource controls
+- Prometheus-compatible inference metrics
+- API performance benchmarking
+- Terraform CLI validation
 
-### Next
-
-- Validate Terraform configuration
-- Publish Docker image to a container registry
-- Add Prometheus/Grafana observability
-- Extend CI toward automated deployment
+AWS infrastructure deployment and a standalone Prometheus/Grafana monitoring stack are outside the current implementation.
