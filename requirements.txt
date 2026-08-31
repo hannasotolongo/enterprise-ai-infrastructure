@@ -4,3 +4,4 @@ uvicorn[standard]
 pydantic
 mlflow==3.15.2
 prometheus-client
+requests
